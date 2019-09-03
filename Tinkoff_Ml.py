@@ -99,7 +99,7 @@ while not Win.isClosed():
   key = Win.checkKey()
   if key == 'space': #pause
     IsPause = not IsPause
-  elif key == 'r': #restart
+  elif key == 'r' or key == 'R' or key == 'К' or key == 'к': #restart, working with caps lock and Russian keyboard
     Restart()
   elif key == "Escape": #exit
     break
