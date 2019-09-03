@@ -1,5 +1,5 @@
 from graphics import *
-import random
+import random, time
 
 W = 30
 H = 30
@@ -7,8 +7,9 @@ Zoom = 20
 Field = []
 FieldState = []
 NewFieldState = []
+DrawQueue = []
 Win = GraphWin('LIFE', W * Zoom, H * Zoom)
-Run = True
+LastTime = time.process_time()
 
 # 0 - empty, 1 - rock, 2 - fish, 3 - shrimp
 Colores = [color_rgb(26, 51, 128), color_rgb(153, 153, 153), color_rgb(255, 255, 0), color_rgb(255, 0, 0)]
@@ -23,48 +24,65 @@ def GetNeigh(x, y, c):
 
 # New status
 def NewState(x, y):
-  FishSum = -1
-  ShrimpSum = -1 #Because we add self
+  FishSum = 0
+  ShrimpSum = 0
   State = FieldState[y][x]
   if State == 1:
     return
 
   for j in range(-1, 2):
-    for i in range(-1, 2  ):
-      FishSum   += GetNeigh(x + i, y + j, 2)
-      ShrimpSum += GetNeigh(x + i, y + j, 3)
+    for i in range(-1, 2):
+      if i != 0 or j != 0:
+        FishSum   += GetNeigh(x + i, y + j, 2)
+        ShrimpSum += GetNeigh(x + i, y + j, 3)
 
   if State == 0:
     if FishSum == 3:
       NewFieldState[y][x] = 2
-      Color(x, y)
+      DrawQueue.append([x, y])
       return
     if ShrimpSum == 3:
       NewFieldState[y][x] = 3
-      Color(x, y)
+      DrawQueue.append([x, y])
       return
 
   if (State == 2 and (FishSum < 2 or FishSum > 3)) or (State == 3 and (ShrimpSum < 2 or ShrimpSum > 3)):
     NewFieldState[y][x] = 0
-    Color(x, y)
+    DrawQueue.append([x, y])
   return
+
+def DrawField():
+  global LastTime
+  for coord in DrawQueue:
+    Color(coord[0], coord[1])
+  DrawQueue.clear()
+  LastTime = time.process_time()
 
 def Move():
   for y in range(H):
     for x in range(W):
       NewState(x, y)
+  DrawField()
   FieldState = NewFieldState
 
+def Restart():
+  for y in range(H):
+    for x in range(W):
+      DrawQueue.append([x, y])
+      FieldState[y][x] = NewFieldState[y][x] = random.randint(0, 3)
+  DrawField()
+
+#create array
 for y in range(H):
   Field.append([Rectangle(Point(y * Zoom, 0), Point((y + 1) * Zoom, Zoom))])
   for x in range(1, W):
     Field[y].append(Rectangle(Point(y * Zoom, x * Zoom), Point((y + 1) * Zoom, (x + 1) * Zoom)));
 
 for y in range(H):
-  NewFieldState.append([3 - (random.randint(0, 5) % 4)])
+  NewFieldState.append([random.randint(0, 3)])
   Color(0, y)
   for x in range(1, W):
-    NewFieldState[y].append(3 - (random.randint(0, 5) % 4))
+    NewFieldState[y].append(random.randint(0, 3))
     Color(x, y)
 
 FieldState = NewFieldState
@@ -73,13 +91,15 @@ for y in range(H):
   for x in range(W):
     Field[y][x].draw(Win)
 
+IsPause = False
+
 while not Win.isClosed():
-  Move()
-  time.sleep(1)
+  if not IsPause and time.process_time() - LastTime > .7:
+    Move()
   key = Win.checkKey()
   if key == 'space': #pause
-    key = Win.checkKey()
-    while key != 'space':
-      key = Win.checkKey()
+    IsPause = not IsPause
+  elif key == 'r': #restart
+    Restart()
   elif key == "Escape": #exit
     break
